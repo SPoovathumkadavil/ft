@@ -1,5 +1,5 @@
 {
-  description = "c++ flake for ft";
+  description = "c++ flake for timed_runner";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -14,6 +14,7 @@
       {
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
+            gnumake # for 'make'
             clang-tools # for clangd
             clang # or gcc
             gdb # for debugging
@@ -21,7 +22,7 @@
           ];
 
           shellHook = ''
-            echo "entering c++ development shell for ft..."
+            echo "entering c++ development shell for timed_runner..."
           '';
         };
       });
