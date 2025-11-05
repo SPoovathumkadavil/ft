@@ -7,6 +7,9 @@
 // add tasks
 // complete tasks
 
+#define HOME std::string("/Users/sally")
+#define DATABASE std::string(HOME + "/.local/library/first.ft");
+
 #include "rapidcsv.hpp"
 
 #include <chrono>
@@ -43,11 +46,12 @@ task *find_task(std::vector<task> *tasks, int id);
 void parse_task_tree(std::vector<task> *tasks);
 void calculate_priorities(std::vector<task> *tasks);
 void sort_by_priorities(std::vector<task> *tasks);
+task *earliest_deadline(std::vector<task> *tasks);
 void update_task_list(std::vector<task> *tasks);
 
 static int initial_tr_wait = 0;
 void destroy_tr_instances();
-void create_tr_instance(task *t);
+void create_tr_instances(task *t);
 
 void display_tasks(std::vector<task> *tasks);
 

@@ -3,6 +3,7 @@
 #include "util.hpp"
 
 #include <chrono>
+#include <format>
 #include <iostream>
 
 std::vector<task> load_tasks(rapidcsv::Document *doc) {
@@ -86,13 +87,17 @@ void sort_by_priorities(std::vector<task> *tasks) {
   });
 }
 
+task *earliest_deadline(std::vector<task> *tasks) {
+  task *t = &tasks->at(0);
+  for (task ti : *tasks) {
+    if (ti.deadline < t->deadline) t = &ti;
+  }
+  return t;
+}
+
 void display_tasks(std::vector<task> *tasks) {
   for (int i = 0; i < tasks->size(); i++) {
-    std::cout << tasks->at(i).id << " " << tasks->at(i).name << " "
-              << std::chrono::duration_cast<std::chrono::seconds>(
-                     tasks->at(i).deadline.time_since_epoch())
-                     .count()
-              << " " << tasks->at(i).priority << '\n';
+    
   }
 }
 
@@ -102,33 +107,46 @@ void update_task_list(std::vector<task> *tasks) {
   sort_by_priorities(tasks);
 }
 
+void destroy_tr_instances() {
+  std::system("pkill timed_runner");  // would be safer to keep track of pids,
+                            // but whats the fun in that
+}
+
+void create_tr_instances(task *t) {
+  static constexpr char f1[] = "task due in {}m\nid {}: {}\n";
+  std::string output = std::format(f1, std::chrono::duration_cast<std::chrono::minutes>(
+      t->deadline-std::chrono::system_clock::now()
+    ).count(), t->id, util::wrap_paragraph(t->name, 30));
+  if (t->desc != "")
+    output += "desc: " + util::wrap_paragraph(t->desc, 30);
+  int s1 = std::chrono::duration_cast<std::chrono::seconds>(
+    t->deadline-std::chrono::minutes(20)-std::chrono::system_clock::now()
+  ).count();
+  static constexpr char f2[] = "timed_runner {} \"alacritty_displayer '{}' 'a task is due, mister.' 'hellokitty'\" &";
+  static constexpr char f3[] = "timed_runner {} \"alacritty_displayer 'RIP {}.\nYou will be missed dearly.' 'pay respects' 'default -d' && rm {}\" &";
+  int s2 = std::chrono::duration_cast<std::chrono::seconds>(t->deadline-std::chrono::system_clock::now()).count();
+  std::string f = util::select_random_file(HOME + "/dev/cpp/ft/test");
+  std::string cmd = std::format(f2, s1, output);
+  std::string cmd2 = std::format(f3, s2, f, f);
+  std::system(cmd.c_str());
+  std::system(cmd2.c_str());
+  // std::cout << cmd2.c_str() << '\n';
+}
+
 int main(int argc, char **argv) {
+
+  if (argc == 0) {
+    
+  }
+
   rapidcsv::Document doc(argv[1]);
   std::vector<task> tasks = load_tasks(&doc);
-  // std::vector<task> tasks;
   update_task_list(&tasks);
+
+
   display_tasks(&tasks);
 
-  std::cout << "add? (y/n) ";
-  std::string should_add_s;
-  std::cin >> should_add_s;
-  if (should_add_s == "y") {
-    std::cout << "name: ";
-    std::string name;
-    std::cin >> name;
-    std::cout << "duration(s): ";
-    std::string d;
-    std::cin >> d;
-    task t = task();
-    std::vector<int> ids = doc.GetColumn<int>("id");
-    t.id = (doc.GetRowCount() > 0)
-               ? *std::max_element(ids.begin(), ids.end()) + 1
-               : 1;
-    t.name = name;
-    t.duration = std::chrono::seconds(std::stoi(d));
-    tasks.push_back(t);
-    update_task_list(&tasks);
-    save_tasks(&tasks, &doc, argv[1]);
-    display_tasks(&tasks);
-  }
+
+  destroy_tr_instances();
+  create_tr_instances(earliest_deadline(&tasks));
 }

@@ -18,7 +18,7 @@ LIBS := $(notdir $(wildcard $(LIB_DIR)/*))
 LIBNAMES := $(patsubst lib%.so, %, $(LIBS))
 
 CC = g++
-CFLAGS = -std=c++17 -Wall -fPIC -I$(GLOBAL_INC_DIR) -I$(INC_DIR)
+CFLAGS = -std=c++20 -Wall -fPIC -I$(GLOBAL_INC_DIR) -I$(INC_DIR)
 LDFLAGS = # -L$(GLOBAL_LIB_DIR) -L$(LIB_DIR) $(addprefix -l,$(LIBNAMES))
 TARGET = $(TARGET_DIR)/$(APP_NAME)
 
