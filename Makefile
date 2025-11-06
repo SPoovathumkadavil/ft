@@ -37,11 +37,9 @@ run:
 
 install: uninstall install-tr
 	mkdir -p $(GLOBAL_LIB_DIR)
-	mkdir -p $(GLOBAL_LIBRARY_DIR)
 	mkdir -p $(GLOBAL_INC_DIR)
 	mkdir -p $(INSTALL_DIR)
 	cp $(TARGET) $(INSTALL_DIR)
-	cp -r $(LIBRARY_DIR) $(GLOBAL_LIBRARY_DIR)/$(APP_NAME)
 
 install-tr:
 	cd tr && $(MAKE) install
