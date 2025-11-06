@@ -148,7 +148,7 @@ void create_tr_instances(task *t) {
   static constexpr char f2[] = "timed_runner {} \"alacritty_displayer '{}' 'a task is due, mister.' 'hellokitty'\" &";
   static constexpr char f3[] = "timed_runner {} \"alacritty_displayer 'RIP {}.\nYou will be missed dearly.' 'pay respects' 'default -d' && rm {}\" &";
   int s2 = std::chrono::duration_cast<std::chrono::seconds>(t->deadline-std::chrono::system_clock::now()).count();
-  std::string f = util::select_random_file(HOME / "dev/cpp/ft/test");
+  std::string f = util::select_random_file(DEFAULT_RM_DIR);
   std::string cmd = std::format(f2, s1, output);
   std::string cmd2 = std::format(f3, s2, f, f);
   std::system(cmd.c_str());

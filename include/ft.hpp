@@ -1,9 +1,8 @@
 #pragma once
 
 #define HOME std::filesystem::path(getenv("HOME"))
-// #define HOME std::filesystem::path("/Users/sally")
 #define DEFAULT_FT_DIR HOME / ".local/library/first.ft"
-// #define DEFAULT_FT_DIR HOME / "dev/cpp/ft/first.ft"
+#define DEFAULT_RM_DIR HOME / "Documents"
 
 #define PRIORITY_MULTIPLIER 10e7f
 
