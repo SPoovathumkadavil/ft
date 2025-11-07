@@ -90,7 +90,7 @@ task *earliest_deadline(std::vector<task> *tasks) {
   task *t = nullptr;
   for (task ti : *tasks) {
     if (t == nullptr && !ti.complete) t = &ti;
-    if (!ti.complete && ti.deadline < t->deadline) t = &ti;
+    else if (!ti.complete && ti.deadline < t->deadline) t = &ti;
   }
   return t;
 }
@@ -222,9 +222,8 @@ int main(int argc, char **argv) {
             t.child_ids = util::convert_int(util::split(val, ","));
           }
         }
-        task *oet = earliest_deadline(&tasks);
         tasks.push_back(t);
-        if (earliest_deadline(&tasks) != oet) update_tr = true;
+        update_tr = true;
       } else {
         std::cout << "name: ";
         std::string name;
@@ -253,9 +252,8 @@ int main(int argc, char **argv) {
         if (deadline != "") t.deadline = util::parse_date_time(deadline);
         if (duration != "") t.duration = util::parse_duration(duration);
         if (child_ids != "") t.child_ids = util::convert_int(util::split(child_ids, ","));
-        task *oet = earliest_deadline(&tasks);
         tasks.push_back(t);
-        if (earliest_deadline(&tasks) != oet) update_tr = true;
+        update_tr = true;
       }
     } else if (action == "complete" || action == "c") {
       if (argc > 2) {
@@ -269,9 +267,8 @@ int main(int argc, char **argv) {
         std::string id;
         std::cin >> id;
         task *t = find_task(&tasks, std::stoi(id));
-        task *oet = earliest_deadline(&tasks);
         t->complete = !t->complete;
-        if (earliest_deadline(&tasks) != oet) update_tr = true;
+        update_tr = true;
       }
     } else if (action == "remove" || action == "rm") {
       if (argc > 2) {
@@ -295,11 +292,10 @@ int main(int argc, char **argv) {
           std::cout << "id not found." << '\n';
           return 1;
         }
-        task *oet = earliest_deadline(&tasks);
         for (int i = 0; i < tasks.size(); i++) {
           if (tasks.at(i).id == std::stoi(id)) tasks.erase(tasks.begin()+i);
         }
-        if (earliest_deadline(&tasks) != oet) update_tr = true;
+        update_tr = true;
       }
     } else if (action == "rel" || action == "relate") {
       if (argc > 3) {
