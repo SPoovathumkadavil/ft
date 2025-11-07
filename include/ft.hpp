@@ -49,6 +49,7 @@ void calculate_priorities(std::vector<task> *tasks);
 void sort_by_priorities(std::vector<task> *tasks);
 task *earliest_deadline(std::vector<task> *tasks);
 void update_task_list(std::vector<task> *tasks);
+void prune_tasks(std::vector<task> *tasks);
 
 static int initial_tr_wait = 0;
 void destroy_tr_instances();

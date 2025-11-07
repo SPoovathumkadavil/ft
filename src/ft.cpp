@@ -67,10 +67,8 @@ void parse_task_tree(std::vector<task> *tasks) {
 double evaluate_chain_priority(task *t, std::vector<task> *tasks) {
   double priority = PRIORITY_MULTIPLIER * (static_cast<float>(t->duration.count()) /
                     (t->deadline - std::chrono::system_clock::now()).count());
-  if (t->child_ids.size() > 0) {
-    for (int i : t->child_ids) {
-      priority += evaluate_chain_priority(find_task(tasks, i), tasks);
-    }
+  for (int i : t->parent_ids) {
+    priority += evaluate_chain_priority(find_task(tasks, i), tasks);
   }
   return priority;
 }
@@ -182,6 +180,14 @@ rapidcsv::Document load_doc(std::string path) {
   return rapidcsv::Document(path);
 }
 
+void prune_tasks(std::vector<task> *tasks) {
+  for (int i = 0; i < tasks->size(); i++) {
+    if (tasks->at(i).complete && tasks->at(i).deadline < std::chrono::system_clock::now()-std::chrono::hours(24)) {
+      tasks->erase(tasks->begin() + i);
+    }
+  }
+}
+
 int main(int argc, char **argv) {
 
   rapidcsv::Document doc = load_doc(DEFAULT_FT_DIR);
@@ -283,11 +289,7 @@ int main(int argc, char **argv) {
       } else {
         std::cout << "id: ";
         std::string id;
-        std::getline(std::cin, id);
-        if (id == "") {
-          std::cout << "please input id." << '\n';
-          return 1;
-        }
+        std::cin >> id;
         task *t = find_task(&tasks, std::stoi(id));
         if (t == nullptr) {
           std::cout << "id not found." << '\n';
@@ -299,6 +301,20 @@ int main(int argc, char **argv) {
         }
         if (earliest_deadline(&tasks) != oet) update_tr = true;
       }
+    } else if (action == "rel" || action == "relate") {
+      if (argc > 3) {
+        find_task(&tasks, std::stoi(argv[2]))->child_ids.push_back(std::stoi(argv[3]));
+      } else {
+        std::cout << "parent id: ";
+        std::string pid;
+        std::cin >> pid;
+        std::cout << "child id: ";
+        std::string cid;
+        std::cin >> cid;
+        find_task(&tasks, std::stoi(pid))->child_ids.push_back(std::stoi(cid));
+      }
+    } else if (action == "prune") {
+      prune_tasks(&tasks);
     }
   }
 
