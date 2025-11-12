@@ -65,8 +65,12 @@ void parse_task_tree(std::vector<task> *tasks) {
 }
 
 double evaluate_chain_priority(task *t, std::vector<task> *tasks) {
-  double priority = PRIORITY_MULTIPLIER * (static_cast<float>(t->duration.count()) /
-                    (t->deadline - std::chrono::system_clock::now()).count());
+  double priority =
+      t->complete
+          ? 0
+          : PRIORITY_MULTIPLIER *
+                (static_cast<float>(t->duration.count()) /
+                 (t->deadline - std::chrono::system_clock::now()).count());
   for (int i : t->parent_ids) {
     priority += evaluate_chain_priority(find_task(tasks, i), tasks);
   }
@@ -83,14 +87,17 @@ void sort_by_priorities(std::vector<task> *tasks) {
   std::sort(tasks->begin(), tasks->end(), [](const task &a, const task &b) {
     return a.priority > b.priority;
   });
-  std::stable_partition(tasks->begin(), tasks->end(), [&](const task& val) { return !val.complete; });
+  std::stable_partition(tasks->begin(), tasks->end(),
+                        [&](const task &val) { return !val.complete; });
 }
 
 task *earliest_deadline(std::vector<task> *tasks) {
   task *t = nullptr;
   for (task ti : *tasks) {
-    if (t == nullptr && !ti.complete) t = &ti;
-    else if (!ti.complete && ti.deadline < t->deadline) t = &ti;
+    if (t == nullptr && !ti.complete)
+      t = &ti;
+    else if (!ti.complete && ti.deadline < t->deadline)
+      t = &ti;
   }
   return t;
 }
@@ -100,22 +107,18 @@ void display_tasks(std::vector<task> *tasks, bool minimal) {
   if (minimal) {
     table.add_row({"id", "name", "completed"});
   } else {
-    table.add_row({"id", "name", "desc", "deadline", "duration", "priority", "completed"});
+    table.add_row({"id", "name", "desc", "deadline", "duration", "priority",
+                   "completed"});
     for (task t : *tasks) {
       std::time_t tt = std::chrono::system_clock::to_time_t(t.deadline);
       std::tm local_tm;
       std::ostringstream oss;
       localtime_r(&tt, &local_tm);
       oss << std::put_time(&local_tm, "%m/%d/%y %H:%M:%S");
-      table.add_row({
-        std::to_string(t.id),
-        util::wrap_paragraph(t.name, 10),
-        util::wrap_paragraph(t.desc, 25),
-        oss.str(),
-        std::format("{:%H:%M:%S}", t.duration),
-        std::to_string(t.priority),
-        t.complete ? "yes" : "no"
-      });
+      table.add_row({std::to_string(t.id), util::wrap_paragraph(t.name, 10),
+                     util::wrap_paragraph(t.desc, 10), oss.str(),
+                     std::format("{:%H:%M:%S}", t.duration),
+                     std::to_string(t.priority), t.complete ? "yes" : "no"});
     }
   }
   std::cout << table << '\n';
@@ -128,24 +131,34 @@ void update_task_list(std::vector<task> *tasks) {
 }
 
 void destroy_tr_instances() {
-  std::system("pkill timed_runner");  // would be safer to keep track of pids,
-                                      // but whats the fun in that
+  std::system("pkill timed_runner"); // would be safer to keep track of pids,
+                                     // but whats the fun in that
 }
 
 void create_tr_instances(task *t) {
-  if (t == nullptr) return;
+  if (t == nullptr)
+    return;
   static constexpr char f1[] = "task due in {}m\nid {}: {}\n";
-  std::string output = std::format(f1, std::chrono::duration_cast<std::chrono::minutes>(
-      t->deadline-std::chrono::system_clock::now()
-    ).count(), t->id, util::wrap_paragraph(t->name, 30));
+  std::string output =
+      std::format(f1,
+                  std::chrono::duration_cast<std::chrono::minutes>(
+                      t->deadline - std::chrono::system_clock::now())
+                      .count(),
+                  t->id, util::wrap_paragraph(t->name, 30));
   if (t->desc != "")
     output += "desc: " + util::wrap_paragraph(t->desc, 30);
   int s1 = std::chrono::duration_cast<std::chrono::seconds>(
-    t->deadline-std::chrono::minutes(20)-std::chrono::system_clock::now()
-  ).count();
-  static constexpr char f2[] = "timed_runner {} \"alacritty_displayer '{}' 'a task is due, mister.' 'hellokitty'\" &";
-  static constexpr char f3[] = "timed_runner {} \"alacritty_displayer 'RIP {}.\nYou will be missed dearly.' 'pay respects' 'default -d' && rm {}\" &";
-  int s2 = std::chrono::duration_cast<std::chrono::seconds>(t->deadline-std::chrono::system_clock::now()).count();
+               t->deadline - std::chrono::minutes(20) -
+               std::chrono::system_clock::now())
+               .count();
+  static constexpr char f2[] = "timed_runner {} \"alacritty_displayer '{}' 'a "
+                               "task is due, mister.' 'hellokitty'\" &";
+  static constexpr char f3[] =
+      "timed_runner {} \"alacritty_displayer 'RIP {}.\nYou will be missed "
+      "dearly.' 'pay respects' 'default -d' && rm {}\" &";
+  int s2 = std::chrono::duration_cast<std::chrono::seconds>(
+               t->deadline - std::chrono::system_clock::now())
+               .count();
   std::string f = util::select_random_file(DEFAULT_RM_DIR);
   std::string cmd = std::format(f2, s1, output);
   std::string cmd2 = std::format(f3, s2, f, f);
@@ -157,19 +170,20 @@ void create_tr_instances(task *t) {
 int get_new_id(rapidcsv::Document *doc) {
   std::vector<int> ids = doc->GetColumn<int>("id");
   return (doc->GetRowCount() > 0)
-              ? *std::max_element(ids.begin(), ids.end()) + 1
-              : 1;
+             ? *std::max_element(ids.begin(), ids.end()) + 1
+             : 1;
 }
 
 void create_ft(std::string path) {
-  std::filesystem::create_directories(std::filesystem::path(path).parent_path());
+  std::filesystem::create_directories(
+      std::filesystem::path(path).parent_path());
   std::ofstream output(path);
 
   if (output.is_open()) {
-      output << "id,name,desc,deadline,duration,complete,child_ids" << '\n';
-      output.close();
+    output << "id,name,desc,deadline,duration,complete,child_ids" << '\n';
+    output.close();
   } else {
-      std::cerr << "Error: Unable to open file " << path << '\n';
+    std::cerr << "Error: Unable to open file " << path << '\n';
   }
 }
 
@@ -182,7 +196,9 @@ rapidcsv::Document load_doc(std::string path) {
 
 void prune_tasks(std::vector<task> *tasks) {
   for (int i = 0; i < tasks->size(); i++) {
-    if (tasks->at(i).complete && tasks->at(i).deadline < std::chrono::system_clock::now()-std::chrono::hours(24)) {
+    if (tasks->at(i).complete &&
+        tasks->at(i).deadline <
+            std::chrono::system_clock::now() - std::chrono::hours(24)) {
       tasks->erase(tasks->begin() + i);
     }
   }
@@ -208,7 +224,7 @@ int main(int argc, char **argv) {
         t.id = get_new_id(&doc);
         for (int i = 2; i < argc; i++) {
           std::string key = argv[i];
-          std::string val = key.substr(key.find_first_of(":")+1);
+          std::string val = key.substr(key.find_first_of(":") + 1);
           key = key.substr(0, key.find_first_of(":"));
           if (key == "name" || key == "n") {
             t.name = val;
@@ -247,11 +263,16 @@ int main(int argc, char **argv) {
 
         task t = task();
         t.id = get_new_id(&doc);
-        if (name != "") t.name = name;
-        if (desc != "") t.desc = desc;
-        if (deadline != "") t.deadline = util::parse_date_time(deadline);
-        if (duration != "") t.duration = util::parse_duration(duration);
-        if (child_ids != "") t.child_ids = util::convert_int(util::split(child_ids, ","));
+        if (name != "")
+          t.name = name;
+        if (desc != "")
+          t.desc = desc;
+        if (deadline != "")
+          t.deadline = util::parse_date_time(deadline);
+        if (duration != "")
+          t.duration = util::parse_duration(duration);
+        if (child_ids != "")
+          t.child_ids = util::convert_int(util::split(child_ids, ","));
         tasks.push_back(t);
         update_tr = true;
       }
@@ -261,7 +282,8 @@ int main(int argc, char **argv) {
         task *t = find_task(&tasks, id);
         task *oet = earliest_deadline(&tasks);
         t->complete = !t->complete;
-        if (earliest_deadline(&tasks) != oet) update_tr = true;
+        if (earliest_deadline(&tasks) != oet)
+          update_tr = true;
       } else {
         std::cout << "id: ";
         std::string id;
@@ -280,9 +302,11 @@ int main(int argc, char **argv) {
         }
         task *oet = earliest_deadline(&tasks);
         for (int i = 0; i < tasks.size(); i++) {
-          if (tasks.at(i).id == id) tasks.erase(tasks.begin()+i);
+          if (tasks.at(i).id == id)
+            tasks.erase(tasks.begin() + i);
         }
-        if (earliest_deadline(&tasks) != oet) update_tr = true;
+        if (earliest_deadline(&tasks) != oet)
+          update_tr = true;
       } else {
         std::cout << "id: ";
         std::string id;
@@ -293,13 +317,15 @@ int main(int argc, char **argv) {
           return 1;
         }
         for (int i = 0; i < tasks.size(); i++) {
-          if (tasks.at(i).id == std::stoi(id)) tasks.erase(tasks.begin()+i);
+          if (tasks.at(i).id == std::stoi(id))
+            tasks.erase(tasks.begin() + i);
         }
         update_tr = true;
       }
     } else if (action == "rel" || action == "relate") {
       if (argc > 3) {
-        find_task(&tasks, std::stoi(argv[2]))->child_ids.push_back(std::stoi(argv[3]));
+        find_task(&tasks, std::stoi(argv[2]))
+            ->child_ids.push_back(std::stoi(argv[3]));
       } else {
         std::cout << "parent id: ";
         std::string pid;
